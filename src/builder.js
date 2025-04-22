@@ -239,7 +239,7 @@ module.exports = {
 *  il sistema operativo {osConfig} e il {delay} delle circolari sono dinamici
 */
 
-async function buildClientFile(osConfig, delay, welcomeEnabled) {
+async function buildClientFile(osConfig, delay, welcomeEnabled, botName) {
     // logBuilderMessage(`[DEBUG] buildClientFile chiamato con delay = ${delay}`);
 
     const content = `
@@ -253,6 +253,7 @@ const { logMessage } = require('./logger');
 const { sendMessageToAll, checkActiveGroups } = require('./invia');
 
 const WELCOME_ENABLED = ${welcomeEnabled};
+const BOT_NAME = '${botName}';
 
 const client = new Client({
     authStrategy: new LocalAuth(),
@@ -321,7 +322,7 @@ if (WELCOME_ENABLED) {
 
     async function sendWelcomeMessageWithCircolare(chat, circolare) {
         const formattedDate = formatItalianDate(circolare.pubDate);
-        const welcomeMessage = \`Ciao a tutti i partecipanti del gruppo \${chat.name}! 🎉\\nSono TorriBot, un chatbot che fornirà aggiornamenti sulle circolari della scuola.\\n\\nEcco l'ultima circolare 📢:\\n\\n*Data*: \${formattedDate}\\n*Titolo*: \${circolare.title}\\n\\n> Leggi la circolare completa: \${circolare.link}\`;
+        const welcomeMessage = \`Ciao a tutti i partecipanti del gruppo \${chat.name}! 🎉\\nSono \${BOT_NAME}, un chatbot che fornirà aggiornamenti sulle circolari della scuola.\\n\\nEcco l'ultima circolare 📢:\\n\\n*Data*: \${formattedDate}\\n*Titolo*: \${circolare.title}\\n\\n> Leggi la circolare completa: \${circolare.link}\`;
         
         await chat.sendMessage(welcomeMessage);
         logMessage(\`Messaggio di benvenuto con circolare inviato al gruppo: \${chat.name}\`);
@@ -767,13 +768,22 @@ async function buildFile() {
     const welcomeEnabledAnswer = await askQuestion("👋 Vuoi attivare il messaggio di benvenuto quando il bot entra in un gruppo? (s/n): ");
     const welcomeEnabled = welcomeEnabledAnswer.trim().toLowerCase() === 's';
 
+    // -- 6) BOT NAME --
+    let botName = "Il bot della scuola"; // default
+    if (welcomeEnabled) {
+        botName = await askQuestion("🤖 Come vuoi chiamare il bot? (default: Il bot della scuola): ");
+        if (!botName.trim()) {
+            botName = "Il bot della scuola";
+        }
+    }
 
     // -- INIZIO COSTRUZIONE --
     logBuilderMessage("\nInizio costruzione con le seguenti impostazioni: ");
     logBuilderMessage(`[FEED]     ${selectedFeed}`);
     logBuilderMessage(`[DEVICE]   ${osChoice.trim() === '2' ? 'UserLAnd' : 'Windows/Linux'}`);
     logBuilderMessage(`[DELAY]    ${delay}ms`);
-    logBuilderMessage(`[WELCOME]  ${welcomeEnabled ? 'Attivo' : 'Disattivo'}\n`);
+    logBuilderMessage(`[WELCOME]  ${welcomeEnabled ? 'Attivo' : 'Disattivo'}`);
+    logBuilderMessage(`[BOT NAME] ${botName}\n`);
 
     //delay di 2 secondi per guardare le impostazioni
     await new Promise(resolve => setTimeout(resolve, 2000))
@@ -783,7 +793,7 @@ async function buildFile() {
     if (!fs.existsSync(path.join(baseDir, 'logs'))) fs.mkdirSync(path.join(baseDir, 'logs'));
 
     await buildCircolareFile(selectedFeed);
-    await buildClientFile(osConfig, delay, welcomeEnabled);
+    await buildClientFile(osConfig, delay, welcomeEnabled, botName);
 
     buildStaticFiles();
     
