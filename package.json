@@ -1,0 +1,19 @@
+{
+  "name": "whatsapp-bot-circolari",
+  "version": "1.0.0",
+  "description": "Bot WhatsApp per notificare circolari scolastiche via RSS",
+  "main": "src/client.js",
+  "scripts": {
+    "start": "node src/client.js",
+    "build": "node src/builder.js"
+  },
+  "author": "Xazitya",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.8.4",
+    "date-fns": "^4.1.0",
+    "qrcode-terminal": "^0.12.0",
+    "rss-parser": "^3.13.0",
+    "whatsapp-web.js": "^1.27.0"
+  }
+}
