@@ -2,7 +2,6 @@
 **Un Bot per WhatsApp, che invia aggiornamenti sulle nuove circolari**dei siti delle scuole italiane  
 realizzati con il tema per WordPress “[Design Scuole Italia](https://docs.italia.it/italia/designers-italia/design-scuole-docs/it/v2022.1/risorse/tema-wordpress.html)”, direttamente nei gruppi di classe.
 
-> [!IMPORTANT]
 > **Non è garantito che il tuo account non venga sospeso utilizzando questa applicazione.  
 > WhatsApp non consente bot o client di terze parti sulla loro piattaforma, dunque non è da considerarsi completamente sicuro.**
 
@@ -87,3 +86,8 @@ Consulta i rispettivi repository per maggiori dettagli.
 # Licenza
 
 Questo progetto è distribuito sotto la [MIT License](LICENSE).
+
+---
+E-mail circolaribotwhatsapp@protonmail.com &nbsp;&middot;&nbsp;
+GitHub [root-xazitya](https://github.com/root-xazitya) &nbsp;&nbsp;
+
