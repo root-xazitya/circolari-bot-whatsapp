@@ -56,6 +56,21 @@ Sotto sono spiegate due modalità di deploy: Windows/Linux e Android (rootless):
        ``` bash
        npm start
        ```
+     - **(Opzionale)** usa pm2 per eseguire il codice 24/7
+  
+       ``` bash
+       npm install pm2
+       ```
+       ``` bash
+       pm2 start client.js
+       ```
+       Visualizza lo stato e i log in tempo reale (necessareio per scannerizzare il codice QR) con
+       ``` bash
+       pm2 status
+       ```
+       ``` bash
+       pm2 logs
+       ```
      - **Scannerizza il codice QR con WhatsApp**
 
           *Tocca i tre puntini* (⋮) *in alto a destra (Android) o Impostazioni (iOS)*
@@ -67,9 +82,11 @@ Sotto sono spiegate due modalità di deploy: Windows/Linux e Android (rootless):
       - **A questo punto il bot è collegato all'account WhatsApp.**
         
         
-2) UserLAnd: un'applicazione per eseguire distribuzioni di Linux su Android 
+2) UserLAnd: applicazione per eseguire distribuzioni di Linux su Android 
 
-     - Coming soon
+     - Scarica [UserLAnd](https://play.google.com/store/apps/details?id=tech.ula&hl=en_ZA) sul dispositivo da cui si vuole deployare l'applicazione
+     - Tra le distribuzioni, selezionare Debian > connection type 'Terminal'
+     - Seguire la mia guida: https://pastebin.com/TYE6SneP
 
 # Crediti
 Questo progetto utilizza le seguenti librerie open-source:
