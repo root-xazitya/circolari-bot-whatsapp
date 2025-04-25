@@ -678,10 +678,17 @@ async function buildFile() {
 
 
     // -- 1) FEED URL --
-    let url = await askQuestion("🔗 Inserire URL del sito istituzionale (es: liceo.edu.it): ");
-    if (!url.startsWith('http')) url = 'https://' + url;
-    url = normalizzaUrl(url);
+    let rawUrl = await askQuestion("🔗 Inserire URL del sito istituzionale (es: liceo.edu.it): ");
+    if (!rawUrl.startsWith('http')) rawUrl = 'https://' + rawUrl;
 
+    //aggiunge www.
+    if (!rawUrl.includes('www.')) rawUrl = rawUrl.replace('https://', 'https://www.');
+    let url = normalizzaUrl(rawUrl);
+    if (!rawUrl.includes('www.')) {
+        rawUrl = rawUrl.replace('https://', 'https://www.');
+        // logBuilderMessage(`[DEBUG] Aggiunto 'www.': ${rawUrl}`);
+    }
+    
     // lista dei feed più tipici    
     const possibleFeeds = [
         `${url}/rss/`,
