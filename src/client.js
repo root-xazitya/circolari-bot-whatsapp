@@ -34,6 +34,7 @@ const { logMessage } = require('./logger');
 const { sendMessageToAll, checkActiveGroups } = require('./invia');
 
 const WELCOME_ENABLED = true;
+const BOT_NAME = 'Il bot della scuola';
 
 const client = new Client({
     authStrategy: new LocalAuth(),
@@ -82,7 +83,7 @@ client.on('ready', async () => {
         } else {
             logMessage(`Nessuna nuova circolare trovata.`);
         }
-    }, 15000);
+    }, 30000);
 });
 
 if (WELCOME_ENABLED) {
@@ -106,7 +107,7 @@ if (WELCOME_ENABLED) {
 
     async function sendWelcomeMessageWithCircolare(chat, circolare) {
         const formattedDate = formatItalianDate(circolare.pubDate);
-        const welcomeMessage = `Ciao a tutti i partecipanti del gruppo ${chat.name}! 🎉\nSono TorriBot, un chatbot che fornirà aggiornamenti sulle circolari della scuola.\n\nEcco l'ultima circolare 📢:\n\n*Data*: ${formattedDate}\n*Titolo*: ${circolare.title}\n\n> Leggi la circolare completa: ${circolare.link}`;
+        const welcomeMessage = `Ciao a tutti i partecipanti del gruppo ${chat.name}! 🎉\nSono ${BOT_NAME}, un chatbot che fornirà aggiornamenti sulle circolari della scuola.\n\nEcco l'ultima circolare 📢:\n\n*Data*: ${formattedDate}\n*Titolo*: ${circolare.title}\n\n> Leggi la circolare completa: ${circolare.link}`;
         
         await chat.sendMessage(welcomeMessage);
         logMessage(`Messaggio di benvenuto con circolare inviato al gruppo: ${chat.name}`);
