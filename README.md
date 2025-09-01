@@ -47,7 +47,7 @@ Sotto sono spiegate due modalità di deploy: Windows/Linux e Android (rootless):
      - **Installa le** [**dipendenze necessarie**](#crediti)  
        
        ``` bash
-       npm install
+       npm install axios date-fns qrcode-terminal rss-parser
        ```
      - **Avvia il costruttore interattivo**
   
@@ -74,7 +74,7 @@ Sotto sono spiegate due modalità di deploy: Windows/Linux e Android (rootless):
        ``` bash
        pm2 start client.js
        ```
-       Visualizza lo stato e i log in tempo reale (necessareio per scannerizzare il codice QR) con
+       Visualizza lo stato e i log in tempo reale (necessario per scannerizzare il codice QR) con
        ``` bash
        pm2 status
        ```
@@ -99,7 +99,7 @@ Sotto sono spiegate due modalità di deploy: Windows/Linux e Android (rootless):
      - Seguire la mia guida: https://pastebin.com/TYE6SneP
 
 # Comandi
-I comandi possono essere eseguiti **solo dagli admin**, sia in un gruppo, che in una chat privata col bot.    
+I comandi possono essere eseguiti **solo dagli admin**, sia in un gruppo in cui il bot è partecipante, che in una chat privata col bot.    
 
 1) **!ping**
     - Restituisce 'Online.'  
@@ -114,7 +114,7 @@ I comandi possono essere eseguiti **solo dagli admin**, sia in un gruppo, che in
        </p>  
        
 4) **!sendall** {messaggio_da_inviare}
-    - Invia un messaggio in tutti i gruppi in cui il bot è membro: 
+    - Invia un messaggio in tutti i gruppi in cui il bot è partecipante: 
        <p align="left">
           <img src="https://i.postimg.cc/FRQR3dt8/DB756-D29-FF2-D-436-A-B2-D4-DE2-DD32-A17-D5.jpg" width="200" alt="image">
        </p>  
