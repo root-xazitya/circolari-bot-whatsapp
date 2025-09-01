@@ -69,7 +69,7 @@ Sotto sono spiegate due modalità di deploy: Windows/Linux e Android (rootless):
      - **(Opzionale)** usa pm2 per eseguire il codice 24/7
   
        ``` bash
-       npm install pm2
+       npm install pm2 -g
        ```
        ``` bash
        pm2 start client.js
