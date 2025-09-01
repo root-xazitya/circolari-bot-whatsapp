@@ -96,8 +96,7 @@ Sotto sono spiegate due modalità di deploy: Windows/Linux e Android (rootless):
 
      - Scarica [UserLAnd](https://play.google.com/store/apps/details?id=tech.ula&hl=en_ZA) sul dispositivo da cui si vuole deployare l'applicazione
      - Tra le distribuzioni, selezionare Debian > connection type 'Terminal'
-     - Seguire la mia guida: https://pastebin.com/TYE6SneP
-
+     - Seguire la mia guida: https://raw.githubusercontent.com/root-xazitya/circolari-bot-whatsapp/refs/heads/main/Deploy%20Android.txt
 # Comandi
 I comandi possono essere eseguiti **solo dagli admin**, sia in un gruppo in cui il bot è partecipante, che in una chat privata col bot.    
 
