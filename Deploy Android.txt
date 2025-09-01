@@ -1,0 +1,49 @@
+    Perchè UserLAnd e non Termux?
+	Su Termux, la libreria puppeteer, che serve a far funzionare whatsapp-web.js, non è supportata.
+	Su UserLAnd, si può aggirare il problema.
+ 
+    Sotto ci sono tutti i comandi, da eseguire un ad uno.
+       userland@localhost:~$ history
+ 
+    5  sudo apt update && sudo apt upgrade -y
+    6  curl -sL https://deb.nodesource.com/setup_18.x | sudo bash -
+    7  sudo apt install -y nodejs
+    8  node -v
+    9  curl -fsSl https://deb.nodesource.com/setup_18.x | sudo -E bash -
+   10  sudo apt install -y nodejs
+   11  node -v
+   12  npm
+   16  npm install qrcode-terminal rss-parser date-fns axios
+   17  npm install whatsapp-web.js
+   18  sudo apt update && sudo apt upgrade
+   19  sudo apt install chromium
+   20  sudo apt install chromium-browser
+   22  npm install chromium
+   23  npm install whatsapp-web.js
+   25  npm install puppeteer
+   27  npm install fs 
+   27.2 (Opzionale ma consigliato se si vuoi eseguire l'applicazione continuamente) npm install pm2
+	- pm2 serve per far continuare a runnare le applicazioni nodejs, e le riavvia se crashano 
+	  (per più informazioni https://pm2.keymetrics.io/)
+   27.3
+       	- Visualizza tutte le librerie installate con 'npm list'
+   28  sudo apt-get install git
+	- Purtroppo, su UserLAnd non è possibile installare Git tramite apt:
+	  Verrà restituito questo errore: E: Sub-process /usr/bin/dpkg returned an error code (1)
+	  Inoltre per costruire git dalla sorgente, servono altre dipenenze (da installare sempre con apt)
+	  Quindi è necessario creare manualmente lo script.
+   29  mkdir circolari-bot-whatsapp
+   30  cd circolari-bot-whatsapp
+   31  touch builder.js
+   32  cat << 'FSF' >> builder.js 
+	- incollare tutto il codice del builder.js, lo puoi trovare qua https://raw.githubusercontent.com/root-xazitya/circolari-bot-whatsapp/refs/heads/main/src/builder.js
+	- premere enter, e scrivere FSF per terminare la modifica al file.
+	- (non si può nemmeno usare nano o gedit, perchè non si possono installare con apt)
+ 
+   33  node builder.js
+        - seguire la configurazione guidata del builder
+   34  node client.js
+	- se hai deciso di usare pm2:
+	  'pm2 start client.js' -> per visualizzare lo stato 'pm2 status' 
+          'pm2 logs' -> per visualizzare il log (necessario per scannerizzare il codice qr)
+    - nelle notifiche di Android, su UserLAnd selezionare 'Acquire wakelock' e disattivare l'ottimizzazione della batteria per UserLAnd
