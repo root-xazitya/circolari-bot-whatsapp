@@ -22,7 +22,9 @@
    23  npm install whatsapp-web.js
    25  npm install puppeteer
    27  npm install fs 
-   27.2 (Opzionale ma consigliato se si vuoi eseguire l'applicazione continuamente) npm install pm2
+   27.2 (Opzionale ma consigliato se si vuoi eseguire l'applicazione continuamente):
+	   npm install pm2 -g
+
 	- pm2 serve per far continuare a runnare le applicazioni nodejs, e le riavvia se crashano 
 	  (per più informazioni https://pm2.keymetrics.io/)
    27.3
@@ -46,4 +48,5 @@
 	- se hai deciso di usare pm2:
 	  'pm2 start client.js' -> per visualizzare lo stato 'pm2 status' 
           'pm2 logs' -> per visualizzare il log (necessario per scannerizzare il codice qr)
+
     - nelle notifiche di Android, su UserLAnd selezionare 'Acquire wakelock' e disattivare l'ottimizzazione della batteria per UserLAnd
