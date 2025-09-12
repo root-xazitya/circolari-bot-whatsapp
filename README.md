@@ -48,6 +48,7 @@ Sotto sono spiegate due modalità di deploy: Windows/Linux e Android (rootless):
        
        ``` bash
        npm install axios date-fns qrcode-terminal rss-parser
+       npm install whatsapp-web.js
        ```
      - **Avvia il costruttore interattivo**
   
