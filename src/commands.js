@@ -33,11 +33,14 @@ const { sendMessageToAll, getGroupList } = require('./invia');
 async function handleMessage(client, message) {
     const authorizedUsers = getAuthorizedUsers();
     const chat = await message.getChat();
-    const sender = await message.getContact();
-    const senderName = sender.pushname || sender.verifiedName || "Sconosciuto";
-    const senderNumber = sender.number || '';
+
+    // workaround per message.getContact() e Client.getContactById 
+    // attualmente rotto a causa dei cambi di API interni di whatsapp
+    const fromId = message.from || '';
+    const senderNumber = fromId.split('@')[0] || '';
+    const senderName = "Sconosciuto";
     const senderInfo = `${senderName} - ${senderNumber}`;
-    const senderNumberOnly = senderNumber.replace(/D/g, '');
+    const senderNumberOnly = senderNumber.replace(/\D/g, '');
     const isAdmin = authorizedUsers.includes(senderNumberOnly);
 
     logMessage(`Messaggio ricevuto da ${senderInfo} (${message.from}) - Admin: ${isAdmin}`);
@@ -117,7 +120,7 @@ ${logs}`);
         const parts = message.body.split(' ');
         if (parts.length >= 3) {
             const numberRaw = parts[2].startsWith('@') ? parts[2].slice(1) : parts[2]; // rimuove la chiocciola se presente
-            const numberToRemove = numberRaw.replace(/D/g, '');
+            const numberToRemove = numberRaw.replace(/\D/g, '');
             if (numberToRemove) {
                 if (numberToRemove === senderNumberOnly) {
                     await message.reply('⚠️ Non puoi rimuovere te stesso dagli admin.');

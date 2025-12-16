@@ -396,11 +396,13 @@ const { sendMessageToAll, getGroupList } = require('./invia');
 async function handleMessage(client, message) {
     const authorizedUsers = getAuthorizedUsers();
     const chat = await message.getChat();
-    const sender = await message.getContact();
-    const senderName = sender.pushname || sender.verifiedName || "Sconosciuto";
-    const senderNumber = sender.number || '';
+    // workaround per message.getContact() / Client.getContactById che
+    // attualmente rotto a causa dei cambi di API interni di WhatsApp Web.
+    const fromId = message.from || '';
+    const senderNumber = fromId.split('@')[0] || '';
+    const senderName = "Sconosciuto";
     const senderInfo = \`\${senderName} - \${senderNumber}\`;
-    const senderNumberOnly = senderNumber.replace(/\D/g, '');
+    const senderNumberOnly = senderNumber.replace(/\\D/g, '');
     const isAdmin = authorizedUsers.includes(senderNumberOnly);
 
     logMessage(\`Messaggio ricevuto da \${senderInfo} (\${message.from}) - Admin: \${isAdmin}\`);
@@ -666,19 +668,19 @@ function addAdminToAuthorizedUsers(adminNumber) {
     if (!data.authorizedNumbers.includes(cleanedNumber)) {
         data.authorizedNumbers.push(cleanedNumber);
         fs.writeFileSync(AUTHORIZED_USERS_FILE, JSON.stringify(data, null, 2));
-        logBuilderMessage(`✅ ${cleanedNumber} aggiunto agli admin.`);
+        logBuilderMessage(`${cleanedNumber} aggiunto agli admin.`);
         return true;
     }
     return false;
 }
 async function buildFile() {
-    console.log("Copyright © 2025 Xazitya\n");
+    console.log("Copyright © 2025 Xazitya (MIT License)\n");
 
     // -inizio configurazione interattiva del bot con cli-
 
 
     // -- 1) FEED URL --
-    let rawUrl = await askQuestion("🔗 Inserire URL del sito istituzionale (es: liceo.edu.it): ");
+    let rawUrl = await askQuestion("Inserire URL del sito istituzionale (es: liceo.edu.it): ");
     if (!rawUrl.startsWith('http')) rawUrl = 'https://' + rawUrl;
 
     //aggiunge www.
@@ -686,10 +688,9 @@ async function buildFile() {
     let url = normalizzaUrl(rawUrl);
     if (!rawUrl.includes('www.')) {
         rawUrl = rawUrl.replace('https://', 'https://www.');
-        // logBuilderMessage(`[DEBUG] Aggiunto 'www.': ${rawUrl}`);
     }
     
-    // lista dei feed più tipici    
+    // lista dei feed più comuni    
     const possibleFeeds = [
         `${url}/rss/`,
         `${url}/rss/comunicati`,
@@ -701,15 +702,15 @@ async function buildFile() {
         `${url}/rss/avvisi`
     ];
 
-    logBuilderMessage('❓ Il feed RSS è necessario per controllare le circolari.');
-    logBuilderMessage('\n🔍 Verifica automatica dei feed RSS in corso...');
+    logBuilderMessage('[!] Il feed RSS è necessario per controllare le circolari.');
+    logBuilderMessage('\nVerifica automatica dei feed RSS in corso...');
     
     let selectedFeed = null;
 
     for (const feed of possibleFeeds) {
         const result = await isRssFeed(feed);
         if (result === 'valid') {
-            logBuilderMessage(`✅ Feed valido trovato: ${feed}\n`);
+            logBuilderMessage(`Feed valido trovato: ${feed}\n`);
             selectedFeed = feed;
             break;
         } else if (result === 'invalid') {
@@ -726,24 +727,25 @@ async function buildFile() {
     }
 
     if (!selectedFeed) {
-        logBuilderMessage('[!] Nessun feed RSS valido trovato. Impossibile continuare.');
+        logBuilderMessage('[!] Nessun feed RSS valido trovato. Per maggiori informazioni:');
+		logBuilderMessage('https://github.com/root-xazitya/circolari-bot-whatsapp?tab=readme-ov-file#supporto');
         rl.close();
         return;
     }
 
     // -- 2) DISPOSITIVO --
-    const osChoice = await askQuestion("💻 Dispositivo (1 = Windows/Linux, 2 = UserLAnd): ");
+    const osChoice = await askQuestion("Piattaforma deploy (1 = Windows/Linux, 2 = Android): ");
     const osConfig = osChoice.trim() === '2'
         ? `puppeteer: { executablePath: '/usr/bin/chromium', args: ['--no-sandbox', '--disable-setuid-sandbox'] },`
         : `\// setup per UserLAnd\n    \// puppeteer: {\n    \//    executablePath: '/usr/bin/chromium',\n    \//    args: ['--no-sandbox', '--disable-setuid-sandbox']\n    \// }`;
 
     // -- 3) DELAY --
-    const delayInput = await askQuestion("⏲️ Inserisci il delay (in ms) per il controllo delle circolari (default 30000): ");
-    const delay = delayInput && !isNaN(delayInput) ? parseInt(delayInput) : 30000; // 30000 è il default
+    const delayInput = await askQuestion("Inserire il delay (in ms) per controllare il feed (default 30000ms): ");
+    const delay = delayInput && !isNaN(delayInput) ? parseInt(delayInput) : 30000; // 30 secondi
 
     // -- 4) ADMIN --
-    logBuilderMessage('❓ Solo gli admin possono usare i comandi del bot.');
-    const adminNumber = await askQuestion("👑 Inserisci il numero dell'admin (es: +39 388 123 4567 -> 39388123567): ");
+    logBuilderMessage('[!] Solo gli admin potranno usare i comandi del bot.');
+    const adminNumber = await askQuestion("Inserisci il numero dell'admin (es: +39 388 123 4567 -> 39388123567): ");
 
     const baseDir = path.join(__dirname, '..');
     const dataDir = path.join(baseDir, 'data');
@@ -771,14 +773,14 @@ async function buildFile() {
 
 
     // -- 5) WELCOME MESSAGE --
-    logBuilderMessage('❓ Il messaggio di benvenuto include anche l\'ultima circolare trovata.');
-    const welcomeEnabledAnswer = await askQuestion("👋 Vuoi attivare il messaggio di benvenuto quando il bot entra in un gruppo? (s/n): ");
+    logBuilderMessage('Il messaggio di benvenuto include anche l\'ultima circolare trovata.');
+    const welcomeEnabledAnswer = await askQuestion("Vuoi attivare il messaggio di benvenuto se il bot entra in un gruppo? (s/n): ");
     const welcomeEnabled = welcomeEnabledAnswer.trim().toLowerCase() === 's';
 
     // -- 6) BOT NAME --
-    let botName = "Il bot della scuola"; // default
+    let botName = "Il bot della scuola"; // di default
     if (welcomeEnabled) {
-        botName = await askQuestion("🤖 Come vuoi chiamare il bot? (default: Il bot della scuola): ");
+        botName = await askQuestion("Come vuoi chiamare il bot? (default: Il bot della scuola): ");
         if (!botName.trim()) {
             botName = "Il bot della scuola";
         }
@@ -804,8 +806,9 @@ async function buildFile() {
 
     buildStaticFiles();
     
-    logBuilderMessage('\n✅ Costruzione completata\n');
-    logBuilderMessage('[?] Ora prova ad avviare il bot con \'npm start\'');
+    logBuilderMessage('\nCostruzione completata\n');
+    logBuilderMessage('Prova ad avviare il bot con \'npm start\'');
+	logBuilderMessage('(se invece sei su Android segui la guida per avviarlo)');
     rl.close();
 }
 
