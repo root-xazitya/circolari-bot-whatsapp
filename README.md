@@ -2,11 +2,12 @@
 **Un Bot per WhatsApp, che invia aggiornamenti sulle nuove circolari** dei siti delle scuole italiane  
 realizzati con il tema per WordPress “[Design Scuole Italia](https://docs.italia.it/italia/designers-italia/design-scuole-docs/it/v2022.1/risorse/tema-wordpress.html)”, direttamente nei **gruppi di classe**.
 
-> **Non è garantito che il tuo account non venga sospeso utilizzando questa applicazione.  
+> **Non è garantito al 100% che il tuo account WhatsApp non venga sospeso utilizzando questa applicazione.  
 > WhatsApp non consente bot o client di terze parti sulla loro piattaforma, dunque non è da considerare completamente sicuro.**
+> Per maggiori informazioni consulta https://www.whatsapp.com/legal/terms-of-service-eea
 
 Visto che il bot **si basa sui feed RSS**, ho creato uno strumento interattivo con una CLI (Command Line Interface)  
-per trovare il feed RSS delle circolari del sito (se esistente) e costruire il bot, velocizzando notevolmente il processo:
+per trovare il feed RSS delle circolari del sito (o verificarne l'esistenza) e costruire il bot, velocizzando notevolmente il processo:
 
 
 <p align="center">
@@ -26,7 +27,7 @@ per trovare il feed RSS delle circolari del sito (se esistente) e costruire il b
 # Come usarlo
 Sotto sono spiegate due modalità di deploy: Windows/Linux e Android (rootless):
 1) Windows/Linux
-     - **Installa** l'ultima versione di LTS di [**Node.js**](https://nodejs.org/) e [**Git**](https://git-scm.com/)
+     - **Installa** l'ultima versione LTS di [**Node.js**](https://nodejs.org/) e [**Git**](https://git-scm.com/)
      - **Verifica** le **installazioni** dal terminale con i seguenti comandi
        
        ``` bash
@@ -67,7 +68,7 @@ Sotto sono spiegate due modalità di deploy: Windows/Linux e Android (rootless):
        ``` bash
        npm start
        ```
-     - **(Opzionale)** usa pm2 per eseguire il codice 24/7
+     - **(Opzionale)** usa pm2 per eseguire il codice 24/7 e riavviarlo 
   
        ``` bash
        npm install pm2 -g
@@ -93,11 +94,11 @@ Sotto sono spiegate due modalità di deploy: Windows/Linux e Android (rootless):
       - **A questo punto il bot è collegato all'account WhatsApp.**
         
         
-2) UserLAnd: applicazione per eseguire distribuzioni di Linux su Android 
+2) UserLAnd: per maggiori informazioni [qui](https://userland.tech/).
 
      - Scarica [UserLAnd](https://play.google.com/store/apps/details?id=tech.ula&hl=en_ZA) sul dispositivo da cui si vuole deployare l'applicazione
      - Tra le distribuzioni, selezionare Debian > connection type 'Terminal'
-     - Seguire la mia guida: https://raw.githubusercontent.com/root-xazitya/circolari-bot-whatsapp/refs/heads/main/Deploy%20Android.txt
+     - Seguire la mia guida per Android: https://raw.githubusercontent.com/root-xazitya/circolari-bot-whatsapp/refs/heads/main/Deploy%20Android.txt
 # Comandi
 I comandi possono essere eseguiti **solo dagli admin**, sia in un gruppo in cui il bot è partecipante, che in una chat privata col bot.    
 
@@ -108,7 +109,7 @@ I comandi possono essere eseguiti **solo dagli admin**, sia in un gruppo in cui 
     - Restituisce n righe di log.  
       
 3) **!latest**
-    - Restituisce l'ultima circolare che trova:
+    - Restituisce l'ultima circolare del feed:
        <p align="left">
           <img src="https://i.postimg.cc/zGq0tVJZ/D83-EE818-520-F-4518-8-D81-DAFA6-D88-D990.jpg" width="200" alt="image">
        </p>  
@@ -136,23 +137,23 @@ I comandi possono essere eseguiti **solo dagli admin**, sia in un gruppo in cui 
   
 # Supporto
 Esempio di feed supportato:
-       <p align="left">
+       <p align="center">
           <img src="https://i.postimg.cc/kGzLRSzt/Screenshot-2025-04-25-155638.png" width="550" alt="image">
        </p>    
        
-Esempio di feed NON supportato:
-       <p align="left">
+Esempio di feed attualmente NON supportato:
+       <p align="center">
           <img src="https://i.postimg.cc/NGdXqDv0/Screenshot-2025-04-25-162049.png" width="550" alt="image">
        </p>    
 
         
 # Crediti
-Questo progetto utilizza le seguenti librerie open-source:
+Questo progetto utilizza le seguenti librerie npm open-source:
 
   - [axios](https://github.com/axios/axios)
   - [date-fns](https://github.com/date-fns/date-fns)
   - [qrcode-terminal](https://github.com/gtanner/qrcode-terminal)
-  - [rss-parser](https://github.com/rss-parser/rss-parser)
+  - [rss-parser](https://github.com/rbren/rss-parser)
   - [whatsapp-web.js](https://github.com/pedroslopez/whatsapp-web.js) – Libreria per interagire con WhatsApp Web tramite Node.js.
 
 Queste librerie sono distribuite sotto diverse licenze open-source.  
