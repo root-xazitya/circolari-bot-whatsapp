@@ -30,7 +30,7 @@ const parser = new Parser();
 const path = require('path');
 const fs = require('fs');
 
-const sitoUrl = 'https://www.example.com';
+const sitoUrl = 'https://www.torricellimi.edu.it/feed/circolari.rss';
 const baseDir = path.join(__dirname, '..');
 const dataDir = path.join(baseDir, 'data');
 

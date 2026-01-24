@@ -24,22 +24,47 @@
 * https://github.com/root-xazitya
 */
 
-// invia.js
-const { logMessage } = require('./logger'); // Usa il logger personalizzato
+const { logMessage } = require('./logger');
 
-//  invia un messaggio a tutti i gruppi validi
 async function sendMessageToAll(client, groups, message) {
     if (!groups || groups.length === 0) {
         logMessage('Nessun gruppo valido trovato per inviare il messaggio.');
         return;
     }
 
-    await Promise.all(groups.map(group =>
-        client.sendMessage(group.id._serialized, message)
-    ));
+    const results = await Promise.allSettled(groups.map(async (group) => {
+        try {
+            if (group.sendMessage) {
+                await group.sendMessage(message, { sendSeen: false });
+            } else {
+                await client.sendMessage(group.id._serialized, message, { sendSeen: false });
+            }
+            return { success: true, groupName: group.name || 'Sconosciuto' };
+        } catch (error) {
+            const errorMessage = error.message || String(error);
+            logMessage(`Errore nell'invio al gruppo ${group.name || group.id._serialized}: ${errorMessage}`);
+            throw error;
+        }
+    }));
 
-    const groupNames = groups.map(group => group.name).join(", ");
-    logMessage(`Invio circolare ai gruppi: ${groupNames}`);
+    const successful = results
+        .filter(r => r.status === 'fulfilled' && r.value.success)
+        .map(r => r.value.groupName);
+    const failed = results
+        .map((result, index) => ({ result, group: groups[index] }))
+        .filter(({ result }) => result.status === 'rejected');
+
+    if (successful.length > 0) {
+        logMessage(`Invio circolare ai gruppi: ${successful.join(", ")}`);
+    }
+
+    if (failed.length > 0) {
+        failed.forEach(({ result, group }) => {
+            const errorMsg = result.reason?.message || result.reason?.toString() || 'Errore sconosciuto';
+            const groupName = group?.name || group?.id?._serialized || 'Sconosciuto';
+            logMessage(`Errore invio al gruppo ${groupName}: ${errorMsg}`);
+        });
+    }
 }
 
 module.exports = {

@@ -33,7 +33,7 @@ const { ensureValidAuthorizedUsersFile, getAuthorizedUsers } = require('./utils'
 const { logMessage } = require('./logger');
 const { sendMessageToAll, checkActiveGroups } = require('./invia');
 
-const WELCOME_ENABLED = true;
+const WELCOME_ENABLED = false;
 const BOT_NAME = 'Il bot della scuola';
 
 const client = new Client({
@@ -43,6 +43,15 @@ const client = new Client({
     //    executablePath: '/usr/bin/chromium',
     //    args: ['--no-sandbox', '--disable-setuid-sandbox']
     // }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    const errorMessage = reason?.message || String(reason);
+    if (errorMessage.includes('markedUnread') || 
+        (reason?.name === 'TypeError' && errorMessage.includes('Cannot read properties'))) {
+        return;
+    }
+    logMessage(`Unhandled rejection: ${errorMessage}`);
 });
 
 client.on('qr', (qr) => {
@@ -56,7 +65,7 @@ client.on('ready', async () => {
 
     const admins = getAuthorizedUsers();
     if (admins.length === 0) {
-        logMessage("⚠️ Nessun numero admin presente in 'authorized_users.json'.");
+        logMessage("Nessun numero admin presente in 'authorized_users.json'.");
     } else {
         logMessage(`Admin autorizzati: ${admins.join(', ')}`);
         logMessage('Inizio controllo delle circolari.');
@@ -83,7 +92,7 @@ client.on('ready', async () => {
         } else {
             logMessage(`Nessuna nuova circolare trovata.`);
         }
-    }, 30000);
+    }, 10000);
 });
 
 if (WELCOME_ENABLED) {
@@ -106,11 +115,21 @@ if (WELCOME_ENABLED) {
     });
 
     async function sendWelcomeMessageWithCircolare(chat, circolare) {
-        const formattedDate = formatItalianDate(circolare.pubDate);
-        const welcomeMessage = `Ciao a tutti i partecipanti del gruppo ${chat.name}! 🎉\nSono ${BOT_NAME}, un chatbot che fornirà aggiornamenti sulle circolari della scuola.\n\nEcco l'ultima circolare 📢:\n\n*Data*: ${formattedDate}\n*Titolo*: ${circolare.title}\n\n> Leggi la circolare completa: ${circolare.link}`;
-        
-        await chat.sendMessage(welcomeMessage);
-        logMessage(`Messaggio di benvenuto con circolare inviato al gruppo: ${chat.name}`);
+        try {
+            const formattedDate = formatItalianDate(circolare.pubDate);
+            const welcomeMessage = `Ciao a tutti i partecipanti del gruppo ${chat.name}! 🎉\nSono ${BOT_NAME}, un chatbot che fornirà aggiornamenti sulle circolari della scuola.\n\nEcco l'ultima circolare 📢:\n\n*Data*: ${formattedDate}\n*Titolo*: ${circolare.title}\n\n> Leggi la circolare completa: ${circolare.link}`;
+            
+            await chat.sendMessage(welcomeMessage, { sendSeen: false });
+            logMessage(`Messaggio di benvenuto con circolare inviato al gruppo: ${chat.name}`);
+        } catch (error) {
+            const errorMessage = error.message || String(error);
+            if (errorMessage.includes('markedUnread') || 
+                (error.name === 'TypeError' && errorMessage.includes('Cannot read properties'))) {
+                // Ignora
+            } else {
+                logMessage(`Errore durante l'invio del messaggio di benvenuto a ${chat.name}: ${errorMessage}`);
+            }
+        }
     }
 }
 
