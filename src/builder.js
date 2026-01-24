@@ -260,6 +260,15 @@ const client = new Client({
     ${osConfig}
 });
 
+process.on('unhandledRejection', (reason, promise) => {
+    const errorMessage = reason?.message || String(reason);
+    if (errorMessage.includes('markedUnread') || 
+        (reason?.name === 'TypeError' && errorMessage.includes('Cannot read properties'))) {
+        return;
+    }
+    logMessage(\`Unhandled rejection: \${errorMessage}\`);
+});
+
 client.on('qr', (qr) => {
     logMessage('Scansiona il codice QR con WhatsApp');
     qrcode.generate(qr, { small: true });
@@ -271,10 +280,10 @@ client.on('ready', async () => {
 
     const admins = getAuthorizedUsers();
     if (admins.length === 0) {
-        logMessage("⚠️ Nessun numero admin presente in 'authorized_users.json'.");
+        logMessage("Nessun numero admin presente in 'authorized_users.json'.");
     } else {
         logMessage(\`Admin autorizzati: \${admins.join(', ')}\`);
-        logMessage(\'Inizio controllo delle circolari.\');
+        logMessage('Inizio controllo delle circolari.');
     }
 
     setInterval(async () => {
@@ -321,11 +330,21 @@ if (WELCOME_ENABLED) {
     });
 
     async function sendWelcomeMessageWithCircolare(chat, circolare) {
-        const formattedDate = formatItalianDate(circolare.pubDate);
-        const welcomeMessage = \`Ciao a tutti i partecipanti del gruppo \${chat.name}! 🎉\\nSono \${BOT_NAME}, un chatbot che fornirà aggiornamenti sulle circolari della scuola.\\n\\nEcco l'ultima circolare 📢:\\n\\n*Data*: \${formattedDate}\\n*Titolo*: \${circolare.title}\\n\\n> Leggi la circolare completa: \${circolare.link}\`;
-        
-        await chat.sendMessage(welcomeMessage);
-        logMessage(\`Messaggio di benvenuto con circolare inviato al gruppo: \${chat.name}\`);
+        try {
+            const formattedDate = formatItalianDate(circolare.pubDate);
+            const welcomeMessage = \`Ciao a tutti i partecipanti del gruppo \${chat.name}! 🎉\\nSono \${BOT_NAME}, un chatbot che fornirà aggiornamenti sulle circolari della scuola.\\n\\nEcco l'ultima circolare 📢:\\n\\n*Data*: \${formattedDate}\\n*Titolo*: \${circolare.title}\\n\\n> Leggi la circolare completa: \${circolare.link}\`;
+            
+            await chat.sendMessage(welcomeMessage, { sendSeen: false });
+            logMessage(\`Messaggio di benvenuto con circolare inviato al gruppo: \${chat.name}\`);
+        } catch (error) {
+            const errorMessage = error.message || String(error);
+            if (errorMessage.includes('markedUnread') || 
+                (error.name === 'TypeError' && errorMessage.includes('Cannot read properties'))) {
+                // Ignora
+            } else {
+                logMessage(\`Errore durante l'invio del messaggio di benvenuto a \${chat.name}: \${errorMessage}\`);
+            }
+        }
     }
 }
 
@@ -361,27 +380,52 @@ module.exports = { isUserAuthorized };`,
 
         'invia.js': `
 // invia.js
-const { logMessage } = require('./logger'); // Usa il logger personalizzato
+const { logMessage } = require('./logger');
 
-//  invia un messaggio a tutti i gruppi validi
 async function sendMessageToAll(client, groups, message) {
     if (!groups || groups.length === 0) {
         logMessage('Nessun gruppo valido trovato per inviare il messaggio.');
         return;
     }
 
-    await Promise.all(groups.map(group =>
-        client.sendMessage(group.id._serialized, message)
-    ));
+    const results = await Promise.allSettled(groups.map(async (group) => {
+        try {
+            if (group.sendMessage) {
+                await group.sendMessage(message, { sendSeen: false });
+            } else {
+                await client.sendMessage(group.id._serialized, message, { sendSeen: false });
+            }
+            return { success: true, groupName: group.name || 'Sconosciuto' };
+        } catch (error) {
+            const errorMessage = error.message || String(error);
+            logMessage(\`Errore nell'invio al gruppo \${group.name || group.id._serialized}: \${errorMessage}\`);
+            throw error;
+        }
+    }));
 
-    const groupNames = groups.map(group => group.name).join(", ");
-    logMessage(\`Invio circolare ai gruppi: \${groupNames}\`);
+    const successful = results
+        .filter(r => r.status === 'fulfilled' && r.value.success)
+        .map(r => r.value.groupName);
+    const failed = results
+        .map((result, index) => ({ result, group: groups[index] }))
+        .filter(({ result }) => result.status === 'rejected');
+
+    if (successful.length > 0) {
+        logMessage(\`Invio circolare ai gruppi: \${successful.join(", ")}\`);
+    }
+
+    if (failed.length > 0) {
+        failed.forEach(({ result, group }) => {
+            const errorMsg = result.reason?.message || result.reason?.toString() || 'Errore sconosciuto';
+            const groupName = group?.name || group?.id?._serialized || 'Sconosciuto';
+            logMessage(\`Errore invio al gruppo \${groupName}: \${errorMsg}\`);
+        });
+    }
 }
 
 module.exports = {
     sendMessageToAll
 };
-
 `,
 
 // ---- INIZIO COSTRUZIONE DI commands.js ----
@@ -393,19 +437,85 @@ const { logMessage, getLastLogLines } = require('./logger');
 const { getLastCircolare, formatItalianDate } = require('./circolare');
 const { sendMessageToAll, getGroupList } = require('./invia');
 
+async function safeReply(message, text, client) {
+    const chat = await message.getChat();
+    const chatId = chat.id._serialized || message.from || (message.id && message.id.remote);
+    
+    if (!chatId) {
+        logMessage(\`Errore: impossibile determinare chatId per il messaggio\`);
+        return;
+    }
+    
+    try {
+        await client.sendMessage(chatId, text, { sendSeen: false });
+        const contextInfo = chat.isGroup ? \`nel gruppo "\${chat.name}"\` : 'in chat privata';
+        logMessage(\`Messaggio inviato con successo \${contextInfo} (\${chatId})\`);
+    } catch (error) {
+        logMessage(\`Errore nell'invio del messaggio a \${chatId}: \${error.message || String(error)}\`);
+        throw error;
+    }
+}
+
 async function handleMessage(client, message) {
     const authorizedUsers = getAuthorizedUsers();
     const chat = await message.getChat();
-    // workaround per message.getContact() / Client.getContactById che
-    // attualmente rotto a causa dei cambi di API interni di WhatsApp Web.
-    const fromId = message.from || '';
-    const senderNumber = fromId.split('@')[0] || '';
-    const senderName = "Sconosciuto";
-    const senderInfo = \`\${senderName} - \${senderNumber}\`;
+    const isGroup = chat.isGroup;
+    
+    let senderId = '';
+    if (isGroup) {
+        senderId = message.author || (message.id && message.id.participant) || message.from;
+    } else {
+        senderId = message.from || '';
+    }
+    
+    let senderNumber = '';
+    let senderName = "Sconosciuto";
+    const isLid = senderId && senderId.includes('@lid');
+    
+    try {
+        if (senderId) {
+            const contact = await message.getContact();
+            if (contact) {
+                senderNumber = contact.number || contact.id.user || '';
+                senderName = contact.pushname || contact.name || "Sconosciuto";
+            }
+        }
+    } catch (error) {
+        try {
+            if (senderId) {
+                const contact = await client.getContactById(senderId);
+                if (contact) {
+                    senderNumber = contact.number || contact.id.user || '';
+                    senderName = contact.pushname || contact.name || "Sconosciuto";
+                }
+            }
+        } catch (error2) {
+            if (isLid && senderId) {
+                try {
+                    const lidResult = await client.getContactLidAndPhone([senderId]);
+                    if (lidResult && lidResult.length > 0 && lidResult[0].pn) {
+                        senderNumber = lidResult[0].pn;
+                    }
+                } catch (error3) {
+                    // Fallback
+                }
+            }
+        }
+    }
+    
+    if (!senderNumber && senderId) {
+        const extractedNumber = senderId.split('@')[0] || '';
+        if (/^\\d+$/.test(extractedNumber)) {
+            senderNumber = extractedNumber;
+        }
+    }
+    
+    const senderInfo = \`\${senderName} - \${senderNumber || 'N/A'}\`;
     const senderNumberOnly = senderNumber.replace(/\\D/g, '');
     const isAdmin = authorizedUsers.includes(senderNumberOnly);
 
-    logMessage(\`Messaggio ricevuto da \${senderInfo} (\${message.from}) - Admin: \${isAdmin}\`);
+    const contextInfo = isGroup ? \`nel gruppo "\${chat.name}"\` : 'in chat privata';
+    logMessage(\`Messaggio ricevuto da \${senderInfo} (\${senderId}) \${contextInfo} - Admin: \${isAdmin}\`);
     if (!isAdmin) return;
 
     const command = message.body.trim().toLowerCase();
@@ -417,12 +527,14 @@ async function handleMessage(client, message) {
             linesToFetch = parseInt(parts[1], 10);
         }
         const logs = getLastLogLines(linesToFetch);
-        await message.reply(\`Ultime \${linesToFetch} linee di log:\n\n\${logs}\`);
+        await safeReply(message, \`Ultime \${linesToFetch} linee di log:
+
+\${logs}\`, client);
         logMessage(\`Inviato log a \${senderInfo}\`);
     }
 
     if (command === '!ping') {
-        await message.reply('Online');
+        await safeReply(message, 'Online', client);
         logMessage(\`Comando !ping eseguito da \${senderInfo}\`);
     }
 
@@ -442,58 +554,63 @@ async function handleMessage(client, message) {
         const latestCircolare = await getLastCircolare();
         if (latestCircolare) {
             const formattedDate = formatItalianDate(latestCircolare.pubDate);
-            const latestMessage = \`Ultima circolare 📢:\n\n*Data*: \${formattedDate}\n*Titolo*: \${latestCircolare.title}\n\n> Leggi la circolare completa: \${latestCircolare.link}\`;
-            await message.reply(latestMessage);
+            const latestMessage = \`Ultima circolare 📢:
+
+*Data*: \${formattedDate}
+*Titolo*: \${latestCircolare.title}
+
+> Leggi la circolare completa: \${latestCircolare.link}\`;
+            await safeReply(message, latestMessage, client);
             logMessage(\`Comando !latest eseguito da \${senderInfo}\`);
         } else {
-            await message.reply('Nessuna circolare disponibile.');
+            await safeReply(message, 'Nessuna circolare disponibile.', client);
         }
     }
 
     if (command.startsWith('!admin add')) {
         const parts = message.body.split(' ');
         if (parts.length >= 3) {
-            const numberRaw = parts[2].startsWith('@') ? parts[2].slice(1) : parts[2]; // rimuove la chiocciola se presente
+            const numberRaw = parts[2].startsWith('@') ? parts[2].slice(1) : parts[2];
             const numberToAdd = numberRaw.replace(/\\D/g, '');
             if (numberToAdd) {
                 const added = addAuthorizedUser(numberToAdd);
                 if (added) {
-                    await message.reply(\`✅ Numero \${numberToAdd} aggiunto agli admin.\`);
+                    await safeReply(message, \`✅ Numero \${numberToAdd} aggiunto agli admin.\`, client);
                     logMessage(\`Admin aggiunto: \${numberToAdd} da \${senderInfo}\`);
                 } else {
-                    await message.reply(\`⚠️ Il numero \${numberToAdd} è già presente tra gli admin.\`);
+                    await safeReply(message, \`⚠️ Il numero \${numberToAdd} è già presente tra gli admin.\`, client);
+                }
+                } else {
+                    await safeReply(message, '⚠️ Numero non valido.', client);
                 }
             } else {
-                await message.reply('⚠️ Numero non valido.');
-            }
-        } else {
-            await message.reply('❌ Uso corretto: !admin add <numero>');
+                await safeReply(message, '❌ Uso corretto: !admin add <numero>', client);
         }
     }
 
     if (command.startsWith('!admin remove')) {
         const parts = message.body.split(' ');
         if (parts.length >= 3) {
-            const numberRaw = parts[2].startsWith('@') ? parts[2].slice(1) : parts[2]; // rimuove la chiocciola se presente
-            const numberToRemove = numberRaw.replace(/\D/g, '');
+            const numberRaw = parts[2].startsWith('@') ? parts[2].slice(1) : parts[2];
+            const numberToRemove = numberRaw.replace(/\\D/g, '');
             if (numberToRemove) {
                 if (numberToRemove === senderNumberOnly) {
-                    await message.reply('⚠️ Non puoi rimuovere te stesso dagli admin.');
+                    await safeReply(message, '⚠️ Non puoi rimuovere te stesso dagli admin.', client);
                     return;
                 }
     
                 const removed = removeAuthorizedUser(numberToRemove);
                 if (removed) {
-                    await message.reply(\`✅ Numero \${numberToRemove} rimosso dagli admin.\`);
+                    await safeReply(message, \`✅ Numero \${numberToRemove} rimosso dagli admin.\`, client);
                     logMessage(\`Admin rimosso: \${numberToRemove} da \${senderInfo}\`);
                 } else {
-                    await message.reply(\`⚠️ Il numero \${numberToRemove} non è presente tra gli admin.\`);
+                    await safeReply(message, \`⚠️ Il numero \${numberToRemove} non è presente tra gli admin.\`, client);
+                }
+                } else {
+                    await safeReply(message, '⚠️ Numero non valido.', client);
                 }
             } else {
-                await message.reply(\'⚠️ Numero non valido.\');
-            }
-        } else {
-            await message.reply(\'❌ Uso corretto: !admin remove <numero>\');
+                await safeReply(message, '❌ Uso corretto: !admin remove <numero>', client);
         }
     }    
 
@@ -501,9 +618,9 @@ async function handleMessage(client, message) {
         const admins = getAuthorizedUsers();
         if (admins.length > 0) {
             const adminList = admins.map(num => \`• \${num}\`).join(\`\\n\`);
-            await message.reply(\`👑 Lista admin:\\n\\n\${adminList}\`);
+            await safeReply(message, \`👑 Lista admin:\\n\\n\${adminList}\`, client);
         } else {
-            await message.reply('⚠️ Nessun admin configurato.');
+            await safeReply(message, '⚠️ Nessun admin configurato.', client);
         }
     }
 
