@@ -11,7 +11,7 @@ per trovare il feed RSS delle circolari del sito (o verificarne l'esistenza) e c
 
 
 <p align="center">
-  <img src="assets/fs.png" width="700" alt="Banner">
+  <img src="fs.png" width="700" alt="Banner">
 </p>
 
 
